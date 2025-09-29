@@ -263,11 +263,11 @@
 
 <script>
     function viewRequest(requestId) {
-        alert('Просмотр заявки #' + requestId + ' будет добавлен позже');
+        window.location.href = '/supplier/requests/' + requestId + '/view';
     }
 
     function editRequest(requestId) {
-        alert('Редактирование заявки #' + requestId + ' будет добавлено позже');
+        window.location.href = '/supplier/requests/' + requestId + '/edit';
     }
 </script>
 {% endblock %}

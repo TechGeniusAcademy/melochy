@@ -174,6 +174,9 @@
                             <th class="percent-col">
                                 <i class="fas fa-percent"></i> % от общей суммы
                             </th>
+                            <th class="actions-col">
+                                <i class="fas fa-cog"></i> Действия
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -220,9 +223,20 @@
                             </td>
                             <td class="percent-info">
                                 <div class="progress-container">
-                                    <div class="progress-bar" style="width: {{ " %.1f"|format(percentage) }}%;"></div>
+                                    <div class="progress-bar" style="width: {{ "%.1f"|format(percentage) }}%;"></div>
                                     <span class="progress-text">{{ "%.1f"|format(percentage) }}%</span>
                                 </div>
+                            </td>
+                            <td class="actions-info">
+                                {% if request.status == 'pending' %}
+                                <form method="post" action="{{ url_for('admin.remove_request_item', request_id=request.id, product_id=item.product_id) }}" style="display:inline;" onsubmit="return confirm('Удалить этот товар из заявки?');">
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Удалить товар">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -243,11 +257,18 @@
                             <td class="total-percent">
                                 <strong>100%</strong>
                             </td>
+                            <td class="actions-summary">
+                                {% if request.status == 'pending' %}
+                                <button type="button" class="btn btn-sm btn-success" onclick="showAddItemForm()">
+                                    <i class="fas fa-plus"></i> Добавить товар
+                                </button>
+                                {% endif %}
+                            </td>
                         </tr>
 
                         <!-- Дополнительная информация -->
                         <tr class="info-row">
-                            <td colspan="6">
+                            <td colspan="7">
                                 <div class="additional-info">
                                     <div class="info-block">
                                         <i class="fas fa-info-circle"></i>
@@ -283,6 +304,36 @@
         {% endif %}
     </div>
     <!-- /.printable-content -->
+
+    <!-- Форма добавления товара -->
+    {% if request.status == 'pending' %}
+    <div id="add-item-form" class="add-item-form" style="display: none;">
+        <div class="form-card">
+            <h3><i class="fas fa-plus"></i> Добавить товар в заявку</h3>
+            <form method="POST" action="{{ url_for('admin.add_request_item', request_id=request.id) }}">
+                <div class="form-group">
+                    <label for="product_id">Товар:</label>
+                    <select name="product_id" id="product_id" class="form-control" required>
+                        <option value="">Выберите товар</option>
+                        <!-- Товары будут загружены через JavaScript -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="quantity">Количество:</label>
+                    <input type="number" name="quantity" id="quantity" class="form-control" min="1" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Добавить товар
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="hideAddItemForm()">
+                        <i class="fas fa-times"></i> Отмена
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="request-actions-card">
         <h3>Действия</h3>
@@ -395,6 +446,67 @@
     .total-row {
         background-color: #f8f9fa;
         font-weight: 600;
+    }
+
+    /* Форма добавления товара */
+    .add-item-form {
+        margin: 20px 0;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 2px dashed #dee2e6;
+    }
+
+    .form-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-card h3 {
+        margin: 0 0 20px 0;
+        color: #495057;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .form-control:focus {
+        border-color: #007bff;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 20px;
+    }
+
+    .actions-col {
+        width: 80px;
+        text-align: center;
     }
 
     .total-row td {
@@ -969,6 +1081,53 @@
         printWindow.document.close();
         printWindow.focus();
         printWindow.print();
+    }
+
+    function showAddItemForm() {
+        const form = document.getElementById('add-item-form');
+        const productSelect = document.getElementById('product_id');
+        const quantityInput = document.getElementById('quantity');
+        
+        // Загружаем список товаров, если еще не загружен
+        if (productSelect.children.length === 1) {
+            loadProducts(productSelect);
+        }
+        
+        form.style.display = 'block';
+        quantityInput.value = '1';
+        productSelect.focus();
+    }
+
+    function hideAddItemForm() {
+        const form = document.getElementById('add-item-form');
+        form.style.display = 'none';
+        
+        // Очищаем форму
+        document.getElementById('product_id').value = '';
+        document.getElementById('quantity').value = '';
+    }
+
+    function loadProducts(selectElement) {
+        // В реальном приложении это был бы AJAX запрос к /api/products
+        // Для простоты добавим статический список
+        fetch('/admin/products/api')
+            .then(response => response.json())
+            .then(products => {
+                products.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.id;
+                    option.textContent = `${product.name} - ${product.price}₸`;
+                    selectElement.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки товаров:', error);
+                // Fallback - показываем сообщение об ошибке
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'Ошибка загрузки товаров';
+                selectElement.appendChild(option);
+            });
     }
 </script>
 {% endblock %}

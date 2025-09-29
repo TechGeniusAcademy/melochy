@@ -518,6 +518,80 @@ def request_detail(request_id: int) -> Union[str, Response]:
     
     return render_template('admin/request_detail.html', request=request_info, items=items, stats=stats)
 
+@admin_bp.route('/requests/<int:request_id>/add_item', methods=['POST'])
+@login_required
+@admin_required
+def add_request_item(request_id):
+    """Добавить товар в заявку"""
+    product_id = request.form.get('product_id')
+    quantity = request.form.get('quantity')
+    
+    if not product_id or not quantity:
+        flash('Выберите товар и укажите количество', 'error')
+        return redirect(url_for('admin.request_detail', request_id=request_id))
+    
+    try:
+        quantity = int(quantity)
+        if quantity <= 0:
+            flash('Количество должно быть больше 0', 'error')
+            return redirect(url_for('admin.request_detail', request_id=request_id))
+    except ValueError:
+        flash('Неверное количество', 'error')
+        return redirect(url_for('admin.request_detail', request_id=request_id))
+    
+    # Проверяем существование заявки и товара
+    request_info = Request.get_by_id(request_id)
+    product = Product.get_by_id(product_id)
+    
+    if not request_info:
+        flash('Заявка не найдена', 'error')
+        return redirect(url_for('admin.requests'))
+    
+    if not product:
+        flash('Товар не найден', 'error')
+        return redirect(url_for('admin.request_detail', request_id=request_id))
+    
+    # Добавляем товар в заявку
+    Request.add_item(request_id, product_id, quantity)
+    log_action(current_user.id, 'update', 'request', request_id)
+    flash(f'Товар "{product["name"]}" добавлен в заявку', 'success')
+    
+    return redirect(url_for('admin.request_detail', request_id=request_id))
+
+@admin_bp.route('/requests/<int:request_id>/remove_item/<int:product_id>', methods=['POST'])
+@login_required
+@admin_required
+def remove_request_item(request_id, product_id):
+    """Удалить товар из заявки"""
+    # Проверяем существование заявки
+    request_info = Request.get_by_id(request_id)
+    if not request_info:
+        flash('Заявка не найдена', 'error')
+        return redirect(url_for('admin.requests'))
+    
+    # Удаляем товар из заявки
+    Request.remove_item(request_id, product_id)
+    log_action(current_user.id, 'update', 'request', request_id)
+    flash('Товар удален из заявки', 'success')
+    
+    return redirect(url_for('admin.request_detail', request_id=request_id))
+
+@admin_bp.route('/products/api')
+@login_required
+@admin_required
+def products_api():
+    """API для получения списка товаров"""
+    products = Product.get_all()
+    products_list = []
+    for product in products:
+        products_list.append({
+            'id': product['id'],
+            'name': product['name'],
+            'price': product['price'],
+            'category_name': product['category_name']
+        })
+    return jsonify(products_list)
+
 @admin_bp.route('/requests/<int:request_id>/export')
 @login_required
 @admin_required

@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from functools import wraps
-from app.models import Supplier, Shop, Product, Category, get_db, log_action
+from app.models import Supplier, Shop, Product, Category, Request, get_db, log_action
 from typing import Any, Union
 from werkzeug.wrappers import Response
 
@@ -233,3 +233,91 @@ def create_request(shop_id):
     # Получаем все глобальные товары созданные админом
     products = Product.get_all()
     return render_template('supplier/create_request.html', shop=shop, products=products)
+
+@supplier_bp.route('/requests/<int:request_id>/edit', methods=['GET', 'POST'])
+@login_required
+@supplier_required
+def edit_request(request_id):
+    """Редактирование заявки"""
+    supplier = Supplier.get_by_user_id(current_user.id)
+    request_info = Request.get_by_id(request_id)
+    
+    if not request_info or request_info['supplier_id'] != supplier.id:
+        flash('Заявка не найдена', 'error')
+        return redirect(url_for('supplier.dashboard'))
+    
+    # Можно редактировать только заявки в статусе pending
+    if request_info['status'] != 'pending':
+        flash('Нельзя редактировать заявку в статусе "' + request_info['status'] + '"', 'error')
+        return redirect(url_for('supplier.shop_requests', shop_id=request_info['shop_id']))
+    
+    if request.method == 'POST':
+        # Очищаем все товары из заявки
+        db = get_db()
+        db.execute('DELETE FROM request_items WHERE request_id = ?', (request_id,))
+        
+        # Добавляем товары заново
+        for key, quantity in request.form.items():
+            if key.startswith('products[') and key.endswith(']') and quantity and int(quantity) > 0:
+                product_id = key[9:-1]
+                db.execute(
+                    'INSERT INTO request_items (request_id, product_id, quantity) VALUES (?, ?, ?)',
+                    (request_id, int(product_id), int(quantity))
+                )
+        
+        # Обновляем время изменения заявки
+        db.execute(
+            'UPDATE requests SET updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            (request_id,)
+        )
+        db.commit()
+        
+        log_action(current_user.id, 'update', 'request', request_id)
+        flash('Заявка успешно обновлена', 'success')
+        return redirect(url_for('supplier.shop_requests', shop_id=request_info['shop_id']))
+    
+    # Получаем текущие товары в заявке
+    current_items = Request.get_items(request_id)
+    current_products = {item['product_id']: item['quantity'] for item in current_items}
+    
+    # Получаем все доступные товары
+    products = Product.get_all()
+    
+    return render_template('supplier/edit_request.html', 
+                         request=request_info, 
+                         products=products, 
+                         current_products=current_products)
+
+@supplier_bp.route('/requests/<int:request_id>/view')
+@login_required
+@supplier_required
+def view_request(request_id):
+    """Просмотр заявки"""
+    supplier = Supplier.get_by_user_id(current_user.id)
+    request_info = Request.get_by_id(request_id)
+    
+    if not request_info or request_info['supplier_id'] != supplier.id:
+        flash('Заявка не найдена', 'error')
+        return redirect(url_for('supplier.dashboard'))
+    
+    # Получаем товары в заявке
+    items = Request.get_items(request_id)
+    
+    # Подсчитываем статистику
+    total_cost = 0
+    total_quantity = 0
+    for item in items:
+        item_total = item['price'] * item['quantity']
+        total_cost += item_total
+        total_quantity += item['quantity']
+    
+    stats = {
+        'total_cost': total_cost,
+        'total_quantity': total_quantity,
+        'items_count': len(items)
+    }
+    
+    return render_template('supplier/view_request.html', 
+                         request=request_info, 
+                         items=items, 
+                         stats=stats)

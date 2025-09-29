@@ -434,6 +434,79 @@ class Request:
         self.updated_at = updated_at
     
     @staticmethod
+    def get_by_id(request_id):
+        """Получить заявку по ID"""
+        db = get_db()
+        request = db.execute(
+            '''SELECT r.*, s.name as shop_name, sup.name as supplier_name
+               FROM requests r
+               JOIN shops s ON r.shop_id = s.id
+               JOIN suppliers sup ON r.supplier_id = sup.id
+               WHERE r.id = ?''',
+            (request_id,)
+        ).fetchone()
+        return request
+    
+    @staticmethod
+    def get_items(request_id):
+        """Получить товары заявки"""
+        db = get_db()
+        items = db.execute(
+            '''SELECT ri.*, p.name as product_name, p.description as product_description, 
+                      p.price, p.wholesale_price, p.image_url
+               FROM request_items ri
+               JOIN products p ON ri.product_id = p.id
+               WHERE ri.request_id = ?
+               ORDER BY p.name''',
+            (request_id,)
+        ).fetchall()
+        return items
+    
+    @staticmethod
+    def update_status(request_id, status):
+        """Обновить статус заявки"""
+        db = get_db()
+        db.execute(
+            'UPDATE requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            (status, request_id)
+        )
+        db.commit()
+    
+    @staticmethod
+    def add_item(request_id, product_id, quantity):
+        """Добавить товар в заявку"""
+        db = get_db()
+        # Проверяем, есть ли уже такой товар в заявке
+        existing = db.execute(
+            'SELECT id, quantity FROM request_items WHERE request_id = ? AND product_id = ?',
+            (request_id, product_id)
+        ).fetchone()
+        
+        if existing:
+            # Обновляем количество
+            db.execute(
+                'UPDATE request_items SET quantity = ? WHERE id = ?',
+                (quantity, existing['id'])
+            )
+        else:
+            # Добавляем новый товар
+            db.execute(
+                'INSERT INTO request_items (request_id, product_id, quantity) VALUES (?, ?, ?)',
+                (request_id, product_id, quantity)
+            )
+        db.commit()
+    
+    @staticmethod
+    def remove_item(request_id, product_id):
+        """Удалить товар из заявки"""
+        db = get_db()
+        db.execute(
+            'DELETE FROM request_items WHERE request_id = ? AND product_id = ?',
+            (request_id, product_id)
+        )
+        db.commit()
+    
+    @staticmethod
     def delete(request_id):
         """Удалить заявку по ID"""
         db = get_db()

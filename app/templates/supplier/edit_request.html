@@ -1,0 +1,622 @@
+{% extends "base.html" %}
+
+{% block title %}Редактировать заявку #{{ request.id }} - {{ request.shop_name }}{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1><i class="fas fa-edit"></i> Редактировать заявку #{{ request.id }} для "{{ request.shop_name }}"</h1>
+    <a href="{{ url_for('supplier.shop_requests', shop_id=request.shop_id) }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Назад к заявкам
+    </a>
+</div>
+
+{% if products %}
+<div class="request-form-container">
+    <form method="POST" class="request-form">
+        <div class="form-header">
+            <h3>Измените товары в заявке для "{{ request.shop_name }}"</h3>
+            <p>Нажимайте на карточки товаров, чтобы добавить их в заявку или изменить количество</p>
+        </div>
+
+        <div class="products-search">
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="product-search" placeholder="Поиск товаров по названию или описанию..." class="search-input">
+                <button type="button" id="clear-search" class="clear-search" style="display: none;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="search-results" id="search-results">
+                <span class="results-text">Показано товаров: <span id="products-count">{{ products|length }}</span></span>
+            </div>
+        </div>
+
+        <div class="products-grid" id="products-grid">
+            {% for product in products %}
+            <div class="product-card {% if current_products.get(product.id) %}selected{% endif %}" data-product-id="{{ product.id }}">
+                {% if product.image_url %}
+                <div class="product-image">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                </div>
+                {% else %}
+                <div class="product-image no-image">
+                    <i class="fas fa-box"></i>
+                </div>
+                {% endif %}
+
+                <div class="product-content">
+                    <h4 class="product-name">{{ product.name }}</h4>
+
+                    <div class="product-category">
+                        {% if product.category_name %}
+                        <span class="category-badge">{{ product.category_name }}</span>
+                        {% else %}
+                        <span class="category-badge no-category">Без категории</span>
+                        {% endif %}
+                    </div>
+
+                    {% if product.description %}
+                    <div class="product-description">
+                        <p>{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="product-price">
+                        <div class="price-info">
+                            <span class="price-label">Цена:</span>
+                            <span class="price-value">{{ "%.0f"|format(product.price) }} ₸</span>
+                        </div>
+                        {% if product.wholesale_price %}
+                        <div class="wholesale-price">
+                            <span class="wholesale-label">Опт:</span>
+                            <span class="wholesale-value">{{ "%.0f"|format(product.wholesale_price) }} ₸</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="quantity-controls">
+                        <label for="quantity-{{ product.id }}">Количество:</label>
+                        <div class="quantity-input-group">
+                            <button type="button" class="quantity-btn minus" data-product-id="{{ product.id }}">-</button>
+                            <input type="number" 
+                                   id="quantity-{{ product.id }}" 
+                                   name="products[{{ product.id }}]" 
+                                   value="{{ current_products.get(product.id, 0) }}" 
+                                   min="0" 
+                                   class="quantity-input">
+                            <button type="button" class="quantity-btn plus" data-product-id="{{ product.id }}">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="product-overlay">
+                    <div class="selection-indicator">
+                        <i class="fas fa-check"></i>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-actions">
+            <div class="selected-products-info">
+                <span id="selected-count">{{ current_products|length if current_products else 0 }}</span> товаров выбрано
+            </div>
+            <div class="action-buttons">
+                <a href="{{ url_for('supplier.shop_requests', shop_id=request.shop_id) }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Отмена
+                </a>
+                <button type="submit" class="btn btn-primary" id="submit-request">
+                    <i class="fas fa-save"></i> Сохранить изменения
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">
+        <i class="fas fa-box-open"></i>
+    </div>
+    <h3>Товары не найдены</h3>
+    <p>В системе пока нет товаров для создания заявки</p>
+    <a href="{{ url_for('supplier.shop_requests', shop_id=request.shop_id) }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Назад к заявкам
+    </a>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const productCards = document.querySelectorAll('.product-card');
+    const selectedCountElement = document.getElementById('selected-count');
+    const submitButton = document.getElementById('submit-request');
+    const searchInput = document.getElementById('product-search');
+    const clearSearchButton = document.getElementById('clear-search');
+    const productsCountElement = document.getElementById('products-count');
+    
+    function updateSelectedCount() {
+        let selectedCount = 0;
+        productCards.forEach(card => {
+            const quantityInput = card.querySelector('.quantity-input');
+            if (quantityInput && parseInt(quantityInput.value) > 0) {
+                selectedCount++;
+            }
+        });
+        selectedCountElement.textContent = selectedCount;
+        submitButton.disabled = selectedCount === 0;
+    }
+    
+    function updateCardAppearance(card) {
+        const quantityInput = card.querySelector('.quantity-input');
+        const quantity = parseInt(quantityInput.value) || 0;
+        
+        if (quantity > 0) {
+            card.classList.add('selected');
+        } else {
+            card.classList.remove('selected');
+        }
+    }
+    
+    // Обработчики количества
+    productCards.forEach(card => {
+        const productId = card.dataset.productId;
+        const quantityInput = card.querySelector('.quantity-input');
+        const plusBtn = card.querySelector('.plus');
+        const minusBtn = card.querySelector('.minus');
+        
+        plusBtn.addEventListener('click', () => {
+            let currentValue = parseInt(quantityInput.value) || 0;
+            quantityInput.value = currentValue + 1;
+            updateCardAppearance(card);
+            updateSelectedCount();
+        });
+        
+        minusBtn.addEventListener('click', () => {
+            let currentValue = parseInt(quantityInput.value) || 0;
+            if (currentValue > 0) {
+                quantityInput.value = currentValue - 1;
+                updateCardAppearance(card);
+                updateSelectedCount();
+            }
+        });
+        
+        quantityInput.addEventListener('input', () => {
+            let value = parseInt(quantityInput.value) || 0;
+            if (value < 0) {
+                quantityInput.value = 0;
+                value = 0;
+            }
+            updateCardAppearance(card);
+            updateSelectedCount();
+        });
+        
+        // Клик по карточке для добавления товара
+        card.addEventListener('click', (e) => {
+            if (!e.target.closest('.quantity-controls')) {
+                let currentValue = parseInt(quantityInput.value) || 0;
+                quantityInput.value = currentValue + 1;
+                updateCardAppearance(card);
+                updateSelectedCount();
+            }
+        });
+        
+        // Инициализация состояния карточки
+        updateCardAppearance(card);
+    });
+    
+    // Поиск товаров
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        let visibleCount = 0;
+        
+        productCards.forEach(card => {
+            const productName = card.querySelector('.product-name').textContent.toLowerCase();
+            const productDescription = card.querySelector('.product-description p');
+            const description = productDescription ? productDescription.textContent.toLowerCase() : '';
+            
+            if (productName.includes(searchTerm) || description.includes(searchTerm)) {
+                card.style.display = 'block';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        productsCountElement.textContent = visibleCount;
+        clearSearchButton.style.display = searchTerm ? 'block' : 'none';
+    });
+    
+    clearSearchButton.addEventListener('click', function() {
+        searchInput.value = '';
+        productCards.forEach(card => {
+            card.style.display = 'block';
+        });
+        productsCountElement.textContent = productCards.length;
+        this.style.display = 'none';
+        searchInput.focus();
+    });
+    
+    // Инициализация
+    updateSelectedCount();
+});
+</script>
+
+<style>
+.request-form-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.request-form {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.form-header {
+    padding: 20px 30px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.form-header h3 {
+    margin: 0 0 8px 0;
+    color: #495057;
+    font-weight: 600;
+}
+
+.form-header p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.products-search {
+    padding: 20px 30px;
+    background: white;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.search-container {
+    position: relative;
+    max-width: 400px;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 40px 10px 40px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.clear-search {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 3px;
+}
+
+.clear-search:hover {
+    background: #f8f9fa;
+}
+
+.search-results {
+    margin-top: 10px;
+}
+
+.results-text {
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 30px;
+}
+
+.product-card {
+    position: relative;
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.product-card:hover {
+    border-color: #007bff;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+}
+
+.product-card.selected {
+    border-color: #28a745;
+    background: #f8fff9;
+}
+
+.product-card.selected .product-overlay {
+    opacity: 1;
+}
+
+.product-image {
+    height: 200px;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.product-image.no-image {
+    background: #e9ecef;
+}
+
+.product-image.no-image i {
+    font-size: 48px;
+    color: #adb5bd;
+}
+
+.product-content {
+    padding: 20px;
+}
+
+.product-name {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #212529;
+    line-height: 1.3;
+}
+
+.product-category {
+    margin-bottom: 10px;
+}
+
+.category-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 4px;
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.category-badge.no-category {
+    background: #f5f5f5;
+    color: #757575;
+}
+
+.product-description {
+    margin-bottom: 15px;
+}
+
+.product-description p {
+    margin: 0;
+    font-size: 14px;
+    color: #6c757d;
+    line-height: 1.4;
+}
+
+.product-price {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.price-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.price-label {
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.price-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #007bff;
+}
+
+.wholesale-price {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.wholesale-label {
+    font-size: 13px;
+    color: #6c757d;
+}
+
+.wholesale-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: #28a745;
+}
+
+.quantity-controls {
+    margin-top: 15px;
+}
+
+.quantity-controls label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #495057;
+}
+
+.quantity-input-group {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.quantity-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: #f8f9fa;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    color: #495057;
+    transition: background-color 0.2s;
+}
+
+.quantity-btn:hover {
+    background: #e9ecef;
+}
+
+.quantity-input {
+    flex: 1;
+    height: 40px;
+    border: none;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 500;
+    background: white;
+}
+
+.quantity-input:focus {
+    outline: none;
+    background: #f8f9fa;
+}
+
+.product-overlay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    background: #28a745;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.selection-indicator {
+    color: white;
+    font-size: 16px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+}
+
+.selected-products-info {
+    font-size: 16px;
+    font-weight: 500;
+    color: #495057;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #0056b3;
+}
+
+.btn-primary:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.empty-icon {
+    font-size: 64px;
+    color: #dee2e6;
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    margin: 0 0 10px 0;
+    color: #495057;
+}
+
+.empty-state p {
+    margin: 0 0 30px 0;
+    color: #6c757d;
+}
+</style>
+
+{% endblock %}
