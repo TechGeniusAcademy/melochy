@@ -4,7 +4,7 @@
 
 ```bash
 # Подключение к серверу
-ssh username@YOUR_SERVER_IP
+ssh username@77.240.39.36
 
 # Обновление системы
 sudo apt update && sudo apt upgrade -y
@@ -22,8 +22,8 @@ sudo chown $USER:$USER /var/www
 ```bash
 # Клонирование репозитория
 cd /var/www
-git clone https://github.com/yourusername/supplier_management_system.git
-cd supplier_management_system
+git clone https://github.com/yourusername/melochy.git
+cd melochy
 
 # Создание виртуального окружения
 python3 -m venv venv
@@ -47,13 +47,13 @@ python wsgi.py
 
 ```bash
 # Копирование конфигурации
-sudo cp nginx.conf /etc/nginx/sites-available/supplier_management
+sudo cp nginx.conf /etc/nginx/sites-available/melochy
 
-# Редактирование конфигурации (замените YOUR_SERVER_IP)
-sudo nano /etc/nginx/sites-available/supplier_management
+# Редактирование конфигурации (IP уже настроен: 77.240.39.36)
+sudo nano /etc/nginx/sites-available/melochy
 
 # Активация сайта
-sudo ln -s /etc/nginx/sites-available/supplier_management /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/melochy /etc/nginx/sites-enabled/
 sudo rm /etc/nginx/sites-enabled/default
 
 # Тест и перезапуск Nginx
@@ -66,23 +66,40 @@ sudo systemctl enable nginx
 
 ```bash
 # Копирование конфигурации
-sudo cp supervisor.conf /etc/supervisor/conf.d/supplier_management.conf
+sudo cp supervisor.conf /etc/supervisor/conf.d/melochy.conf
 
-# Обновление Supervisor
+# Проверка, что файл создался
+ls -la /etc/supervisor/conf.d/melochy.conf
+
+# Проверка содержимого файла
+sudo cat /etc/supervisor/conf.d/melochy.conf
+
+# ВАЖНО: Удалить старые конфигурации если есть
+sudo rm -f /etc/supervisor/conf.d/supplier_management.conf
+
+# Обновление Supervisor (важно делать в правильном порядке)
 sudo supervisorctl reread
 sudo supervisorctl update
-sudo supervisorctl start supplier_management
+
+# Проверка доступных программ
+sudo supervisorctl avail
+
+# Запуск приложения
+sudo supervisorctl start melochy
 
 # Проверка статуса
 sudo supervisorctl status
+
+# Если есть ошибки, проверить логи
+sudo tail -f /var/log/supervisor/melochy.log
 ```
 
 ## 5. Настройка прав доступа
 
 ```bash
-sudo chown -R www-data:www-data /var/www/supplier_management_system
-sudo chmod -R 755 /var/www/supplier_management_system
-sudo chmod -R 775 /var/www/supplier_management_system/app/static/uploads
+sudo chown -R www-data:www-data /var/www/melochy
+sudo chmod -R 755 /var/www/melochy
+sudo chmod -R 775 /var/www/melochy/app/static/uploads
 ```
 
 ## 6. Настройка брандмауэра
@@ -96,7 +113,7 @@ sudo ufw enable
 
 ## 7. Проверка работы
 
-Откройте в браузере: `http://YOUR_SERVER_IP`
+Откройте в браузере: `http://77.240.39.36`
 
 ## 8. Обновление проекта (в будущем)
 
@@ -112,19 +129,96 @@ chmod +x deploy.sh
 
 ```bash
 # Проверка логов
-sudo tail -f /var/log/supervisor/supplier_management.log
-sudo tail -f /var/log/nginx/supplier_management_error.log
+sudo tail -f /var/log/supervisor/melochy.log
+sudo tail -f /var/log/nginx/melochy_error.log
+sudo tail -f /var/log/nginx/static_access.log
 
 # Управление приложением
-sudo supervisorctl restart supplier_management
-sudo supervisorctl stop supplier_management
-sudo supervisorctl start supplier_management
+sudo supervisorctl restart melochy
+sudo supervisorctl stop melochy
+sudo supervisorctl start melochy
 
 # Перезапуск сервисов
 sudo systemctl restart nginx
 sudo systemctl restart supervisor
+
+# Проверка статических файлов
+ls -la /var/www/melochy/app/static/css/
+curl -I http://77.240.39.36/static/css/style.css
+```
+
+## Устранение проблем
+
+### Проблема: "ERROR (no such process)" при запуске
+
+```bash
+# 1. Удалить старые конфигурации
+sudo rm -f /etc/supervisor/conf.d/supplier_management.conf
+
+# 2. Скопировать новую конфигурацию
+sudo cp supervisor.conf /etc/supervisor/conf.d/melochy.conf
+
+# 3. Перезапустить Supervisor полностью
+sudo systemctl restart supervisor
+
+# 4. Проверить статус
+sudo supervisorctl status
+
+# 5. Запустить приложение
+sudo supervisorctl start melochy
+```
+
+### Проблема: "ERROR (no such file)" 
+
+```bash
+# Проверить существование конфигурационного файла
+ls -la /etc/supervisor/conf.d/
+
+# Если файла нет, скопировать заново
+sudo cp supervisor.conf /etc/supervisor/conf.d/melochy.conf
+
+# Перечитать конфигурацию
+sudo supervisorctl reread
+sudo supervisorctl update
+```
+
+### Проблема с правами доступа
+
+```bash
+# Проверить права на директорию
+ls -la /var/www/melochy
+
+# Исправить права
+sudo chown -R www-data:www-data /var/www/melochy
+sudo chmod -R 755 /var/www/melochy
+```
+
+### Проблема: CSS/JS файлы не загружаются
+
+```bash
+# 1. Проверить существование статических файлов
+ls -la /var/www/melochy/app/static/css/
+ls -la /var/www/melochy/app/static/js/
+
+# 2. Обновить конфигурацию Nginx
+git pull origin main
+sudo cp nginx.conf /etc/nginx/sites-available/melochy
+
+# 3. Исправить права на статические файлы
+sudo chown -R www-data:www-data /var/www/melochy/app/static
+sudo chmod -R 755 /var/www/melochy/app/static
+
+# 4. Перезапустить Nginx
+sudo nginx -t
+sudo systemctl restart nginx
+
+# 5. Проверить доступность CSS файла
+curl -I http://77.240.39.36/static/css/style.css
+
+# 6. Проверить логи ошибок
+sudo tail -f /var/log/nginx/melochy_error.log
 ```
 
 ---
 
-**Важно:** Не забудьте заменить `YOUR_SERVER_IP` на реальный IP адрес вашего сервера во всех конфигурационных файлах!
+**Готово!** IP адрес `77.240.39.36` уже настроен во всех конфигурационных файлах.

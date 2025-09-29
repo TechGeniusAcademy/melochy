@@ -6,8 +6,8 @@
 echo "🚀 Начинаем деплой системы управления поставщиками..."
 
 # Определяем директорию проекта
-PROJECT_DIR="/var/www/supplier_management_system"
-BACKUP_DIR="/var/backups/supplier_management"
+PROJECT_DIR="/var/www/melochy"
+BACKUP_DIR="/var/backups/melochy"
 
 # Функция для вывода сообщений
 log() {
@@ -75,7 +75,7 @@ check_status "Установка прав доступа"
 
 # Перезапускаем приложение через Supervisor
 log "Перезапуск приложения..."
-sudo supervisorctl restart supplier_management
+sudo supervisorctl restart melochy
 check_status "Перезапуск приложения"
 
 # Перезагружаем конфигурацию Nginx
@@ -86,7 +86,7 @@ check_status "Перезагрузка Nginx"
 # Проверяем статус сервисов
 log "Проверка статуса сервисов..."
 echo "Статус приложения:"
-sudo supervisorctl status supplier_management
+sudo supervisorctl status melochy
 
 echo "Статус Nginx:"
 sudo systemctl status nginx --no-pager -l
@@ -103,7 +103,7 @@ fi
 log "🎉 Деплой завершен успешно!"
 echo ""
 echo "📋 Полезные команды для мониторинга:"
-echo "   Логи приложения: sudo tail -f /var/log/supplier_management.log"
-echo "   Логи Nginx: sudo tail -f /var/log/nginx/error.log"
+echo "   Логи приложения: sudo tail -f /var/log/supervisor/melochy.log"
+echo "   Логи Nginx: sudo tail -f /var/log/nginx/melochy_error.log"
 echo "   Статус приложения: sudo supervisorctl status"
-echo "   Перезапуск приложения: sudo supervisorctl restart supplier_management"
+echo "   Перезапуск приложения: sudo supervisorctl restart melochy"

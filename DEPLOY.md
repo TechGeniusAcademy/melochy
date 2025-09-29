@@ -60,8 +60,7 @@ if __name__ == "__main__":
 ### 1. Подключение к серверу
 
 ```bash
-ssh username@YOUR_SERVER_IP
-# Например: ssh root@192.168.1.100
+ssh username@77.240.39.36
 ```
 
 ### 2. Обновление системы
@@ -166,7 +165,7 @@ sudo nano /etc/nginx/sites-available/supplier_management
 ```nginx
 server {
     listen 80;
-    server_name YOUR_SERVER_IP;  # Например: 192.168.1.100
+    server_name 77.240.39.36;
 
     location / {
         proxy_pass http://127.0.0.1:5000;
@@ -359,7 +358,7 @@ cp /var/www/supplier_management_system/app.db /var/backups/supplier_management/a
 
 ## Проверка деплоя
 
-1. Откройте браузер и перейдите по адресу: `http://YOUR_SERVER_IP`
+1. Откройте браузер и перейдите по адресу: `http://77.240.39.36`
 2. Проверьте, что сайт загружается корректно
 3. Протестируйте основной функционал
 4. Проверьте загрузку статических файлов
@@ -393,4 +392,4 @@ sudo supervisorctl restart supplier_management
 
 ---
 
-**Примечание:** Замените `YOUR_SERVER_IP` на реальный IP-адрес вашего сервера, `username` на ваше имя пользователя, и настройте пути согласно вашей конфигурации.
+**Примечание:** IP-адрес сервера `77.240.39.36` уже настроен. Замените `username` на ваше имя пользователя на сервере.
