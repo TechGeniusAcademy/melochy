@@ -324,6 +324,12 @@ class Category:
         return cursor.lastrowid
 
 class Product:
+    @staticmethod
+    def delete(product_id):
+        """Удалить товар по ID"""
+        db = get_db()
+        db.execute('DELETE FROM products WHERE id = ?', (product_id,))
+        db.commit()
     def __init__(self, id, category_id, name, description, price, 
                  wholesale_price=None, image_url=None, 
                  created_at=None, updated_at=None):
@@ -414,4 +420,25 @@ class Product:
                WHERE id = ?''',
             (category_id, name, description, price, wholesale_price, image_url, product_id)
         )
+        db.commit()
+
+
+class Request:
+    def __init__(self, id, shop_id, supplier_id, status='pending', 
+                 created_at=None, updated_at=None):
+        self.id = id
+        self.shop_id = shop_id
+        self.supplier_id = supplier_id
+        self.status = status
+        self.created_at = created_at
+        self.updated_at = updated_at
+    
+    @staticmethod
+    def delete(request_id):
+        """Удалить заявку по ID"""
+        db = get_db()
+        # Сначала удаляем связанные позиции заявки
+        db.execute('DELETE FROM request_items WHERE request_id = ?', (request_id,))
+        # Потом удаляем саму заявку
+        db.execute('DELETE FROM requests WHERE id = ?', (request_id,))
         db.commit()

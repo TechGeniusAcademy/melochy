@@ -57,6 +57,11 @@
                            class="btn btn-sm btn-secondary" title="Экспорт в Excel">
                             <i class="fas fa-file-excel"></i>
                         </a>
+                        <form method="post" action="{{ url_for('admin.delete_request', request_id=request.id) }}" style="display:inline;" onsubmit="return confirm('Удалить эту заявку? Все связанные данные будут удалены.');">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Удалить">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
                     </div>
                 </td>
             </tr>

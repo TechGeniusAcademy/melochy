@@ -71,6 +71,11 @@
                         <a href="{{ url_for('admin.edit_product', product_id=product.id) }}" class="btn btn-sm btn-secondary" title="Редактировать">
                             <i class="fas fa-edit"></i>
                         </a>
+                        <form method="post" action="{{ url_for('admin.delete_product', product_id=product.id) }}" style="display:inline;" onsubmit="return confirm('Удалить этот товар?');">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Удалить">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
                     </div>
                 </td>
             </tr>

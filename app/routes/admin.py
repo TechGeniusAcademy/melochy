@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, make_response
 from flask_login import login_required, current_user
 from functools import wraps
-from app.models import User, Supplier, Shop, Category, Product, get_db, log_action
+from app.models import User, Supplier, Shop, Category, Product, Request, get_db, log_action
 import csv
 import io
 from openpyxl import Workbook
@@ -421,6 +421,19 @@ def edit_product(product_id):
     categories = Category.get_all()
     return render_template('admin/edit_product.html', product=product, categories=categories)
 
+@admin_bp.route('/products/<int:product_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_product(product_id):
+    product = Product.get_by_id(product_id)
+    if not product:
+        flash('Товар не найден', 'error')
+        return redirect(url_for('admin.products'))
+    Product.delete(product_id)
+    log_action(current_user.id, 'delete', 'product', product_id)
+    flash('Товар успешно удален', 'success')
+    return redirect(url_for('admin.products'))
+
 @admin_bp.route('/requests')
 @login_required
 @admin_required
@@ -673,6 +686,24 @@ def export_request(request_id: int) -> Union[str, Response]:
     response.headers['Content-Disposition'] = f'attachment; filename={filename}'
     
     return response
+
+@admin_bp.route('/requests/<int:request_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_request(request_id):
+    """Удаление заявки"""
+    # Проверяем существование заявки
+    db = get_db()
+    request_info = db.execute('SELECT * FROM requests WHERE id = ?', (request_id,)).fetchone()
+    if not request_info:
+        flash('Заявка не найдена', 'error')
+        return redirect(url_for('admin.requests'))
+    
+    # Удаляем заявку (метод delete удалит и связанные позиции)
+    Request.delete(request_id)
+    log_action(current_user.id, 'delete', 'request', request_id)
+    flash('Заявка успешно удалена', 'success')
+    return redirect(url_for('admin.requests'))
 
 @admin_bp.route('/requests/<int:request_id>/mark_processed', methods=['POST'])
 @login_required
