@@ -1,0 +1,38 @@
+[tool.pyright]
+include = ["app"]
+exclude = ["**/__pycache__"]
+strictListInference = false
+strictDictionaryInference = false
+strictSetInference = false
+reportMissingModuleSource = false
+reportMissingImports = false
+reportMissingTypeStubs = false
+reportUnusedImport = false
+reportUnknownParameterType = false
+reportUnknownArgumentType = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportGeneralTypeIssues = false
+reportMissingParameterType = false
+reportMissingReturnType = false
+reportUnknownLambdaType = false
+reportUnnecessaryTypeIgnoreComment = false
+reportUnusedClass = false
+reportUnusedFunction = false
+reportUnusedVariable = false
+reportDuplicateImport = false
+reportOptionalSubscript = false
+reportOptionalMemberAccess = false
+reportOptionalCall = false
+reportOptionalIterable = false
+reportOptionalContextManager = false
+reportOptionalOperand = false
+reportTypedDictNotRequiredAccess = false
+reportPrivateImportUsage = false
+reportUnboundVariable = false
+reportGeneralTypeIssues = false
+reportMissingTypeArgument = false
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"

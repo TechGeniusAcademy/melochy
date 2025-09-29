@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Добавить магазин{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1><i class="fas fa-plus"></i> Добавить магазин</h1>
+    <a href="{{ url_for('supplier.shops') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Назад
+    </a>
+</div>
+
+<div class="form-container">
+    <form method="POST" class="form">
+        <div class="form-group">
+            <label for="name">Название магазина</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+
+        <div class="form-group">
+            <label for="business_type">Тип организации</label>
+            <select id="business_type" name="business_type" required>
+                <option value="ИП">ИП (Индивидуальный предприниматель)</option>
+                <option value="ТОО">ТОО (Товарищество с ограниченной ответственностью)</option>
+                <option value="АО">АО (Акционерное общество)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="info">Описание магазина</label>
+            <textarea id="info" name="info" rows="4" placeholder="Опишите ваш магазин..."></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="submit-btn">
+                <i class="fas fa-save"></i> Создать магазин
+            </button>
+            <a href="{{ url_for('supplier.shops') }}" class="btn btn-secondary">
+                Отмена
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const submitBtn = document.getElementById('submit-btn');
+    let isSubmitting = false;
+    
+    form.addEventListener('submit', function(e) {
+        if (isSubmitting) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Проверяем обязательные поля
+        const nameField = document.getElementById('name');
+        const businessTypeField = document.getElementById('business_type');
+        
+        if (!nameField.value.trim()) {
+            e.preventDefault();
+            alert('Пожалуйста, введите название магазина');
+            return false;
+        }
+        
+        if (!businessTypeField.value) {
+            e.preventDefault();
+            alert('Пожалуйста, выберите тип организации');
+            return false;
+        }
+        
+        isSubmitting = true;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
+    });
+});
+</script>
+{% endblock %}

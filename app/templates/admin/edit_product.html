@@ -1,0 +1,439 @@
+{% extends "base.html" %}
+
+{% block title %}Редактировать товар{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div class="header-left">
+        <h1><i class="fas fa-edit"></i> Редактировать товар</h1>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('admin.dashboard') }}">Панель управления</a>
+            <span>/</span>
+            <a href="{{ url_for('admin.products') }}">Товары</a>
+            <span>/</span>
+            <a href="{{ url_for('admin.product_detail', product_id=product.id) }}">{{ product.name }}</a>
+            <span>/</span>
+            <span>Редактирование</span>
+        </nav>
+    </div>
+    <div class="header-actions">
+        <a href="{{ url_for('admin.product_detail', product_id=product.id) }}" class="btn btn-outline">
+            <i class="fas fa-arrow-left"></i> Назад
+        </a>
+    </div>
+</div>
+
+<div class="form-container">
+    <div class="form-card">
+        <form method="POST" class="product-form" id="productForm">
+            <div class="form-section">
+                <h3><i class="fas fa-info-circle"></i> Основная информация</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name" class="required">Название товара</label>
+                        <input type="text" id="name" name="name" 
+                               value="{{ product.name }}" 
+                               class="form-input" required maxlength="200">
+                        <small class="form-help">Название должно быть уникальным и понятным</small>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="description">Описание</label>
+                        <textarea id="description" name="description" 
+                                  class="form-textarea" rows="4" maxlength="1000">{{ product.description or '' }}</textarea>
+                        <small class="form-help">Подробное описание товара</small>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="category_id">Категория</label>
+                        <select id="category_id" name="category_id" class="form-select">
+                            <option value="">Без категории</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}" 
+                                    {% if category.id == product.category_id %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-help">Выберите категорию для группировки товара</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3><i class="fas fa-dollar-sign"></i> Ценовая информация</h3>
+                
+                <div class="form-row two-columns">
+                    <div class="form-group">
+                        <label for="price" class="required">Розничная цена (₸)</label>
+                        <input type="number" id="price" name="price" 
+                               value="{{ product.price }}"
+                               class="form-input" required min="0" step="0.01">
+                        <small class="form-help">Основная цена товара</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="wholesale_price">Оптовая цена (₸)</label>
+                        <input type="number" id="wholesale_price" name="wholesale_price" 
+                               value="{{ product.wholesale_price or '' }}"
+                               class="form-input" min="0" step="0.01">
+                        <small class="form-help">Цена при оптовых закупках (необязательно)</small>
+                    </div>
+                </div>
+            </div>
+            
+            {% if product.image_url %}
+            <div class="form-section">
+                <h3><i class="fas fa-image"></i> Текущее изображение</h3>
+                <div class="current-image">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}" class="product-preview">
+                    <p class="image-info">
+                        <i class="fas fa-info-circle"></i>
+                        Для изменения изображения используйте форму добавления товара
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Сохранить изменения
+                </button>
+                <a href="{{ url_for('admin.product_detail', product_id=product.id) }}" class="btn btn-outline">
+                    <i class="fas fa-times"></i> Отменить
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <div class="info-sidebar">
+        <div class="info-card">
+            <h4><i class="fas fa-lightbulb"></i> Советы по редактированию</h4>
+            <ul>
+                <li>Убедитесь, что название товара четкое и описательное</li>
+                <li>Проверьте правильность цен перед сохранением</li>
+                <li>Добавьте описание для лучшего понимания товара</li>
+                <li>Выберите подходящую категорию для удобной навигации</li>
+            </ul>
+        </div>
+        
+        <div class="info-card warning">
+            <h4><i class="fas fa-exclamation-triangle"></i> Внимание</h4>
+            <p>Изменения цен повлияют на все будущие заявки. Существующие заявки останутся с прежними ценами.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('productForm');
+        const priceInput = document.getElementById('price');
+        const wholesalePriceInput = document.getElementById('wholesale_price');
+        
+        // Валидация цен
+        function validatePrices() {
+            const price = parseFloat(priceInput.value) || 0;
+            const wholesalePrice = parseFloat(wholesalePriceInput.value) || 0;
+            
+            if (wholesalePrice > 0 && wholesalePrice >= price) {
+                wholesalePriceInput.setCustomValidity('Оптовая цена должна быть меньше розничной');
+                return false;
+            } else {
+                wholesalePriceInput.setCustomValidity('');
+                return true;
+            }
+        }
+        
+        priceInput.addEventListener('input', validatePrices);
+        wholesalePriceInput.addEventListener('input', validatePrices);
+        
+        // Предотвращение повторной отправки формы
+        form.addEventListener('submit', function(e) {
+            if (!validatePrices()) {
+                e.preventDefault();
+                return;
+            }
+            
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
+            
+            // Если форма не отправилась за 5 секунд, разблокируем кнопку
+            setTimeout(() => {
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="fas fa-save"></i> Сохранить изменения';
+            }, 5000);
+        });
+        
+        // Автосохранение в localStorage для восстановления при случайном закрытии
+        const inputs = form.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+            // Загружаем сохраненные данные
+            const savedValue = localStorage.getItem(`product_edit_${input.name}`);
+            if (savedValue && input.name !== 'name') { // Не восстанавливаем название
+                input.value = savedValue;
+            }
+            
+            // Сохраняем при изменении
+            input.addEventListener('input', () => {
+                localStorage.setItem(`product_edit_${input.name}`, input.value);
+            });
+        });
+        
+        // Очищаем localStorage при успешной отправке
+        form.addEventListener('submit', () => {
+            inputs.forEach(input => {
+                localStorage.removeItem(`product_edit_${input.name}`);
+            });
+        });
+    });
+</script>
+
+<style>
+    .form-container {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        margin-top: 20px;
+    }
+
+    .form-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        border: 1px solid #e0e0e0;
+        overflow: hidden;
+    }
+
+    .product-form {
+        padding: 24px;
+    }
+
+    .form-section {
+        margin-bottom: 32px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .form-section:last-of-type {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .form-section h3 {
+        margin: 0 0 20px 0;
+        color: #333;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .form-row.two-columns .form-group {
+        flex: 1;
+    }
+
+    .form-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .form-group {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 6px;
+        font-size: 14px;
+    }
+
+    .form-group label.required::after {
+        content: " *";
+        color: #dc3545;
+    }
+
+    .form-input,
+    .form-textarea,
+    .form-select {
+        padding: 12px 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .form-input:focus,
+    .form-textarea:focus,
+    .form-select:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+
+    .form-input:invalid,
+    .form-textarea:invalid {
+        border-color: #dc3545;
+    }
+
+    .form-textarea {
+        resize: vertical;
+        min-height: 100px;
+        font-family: inherit;
+    }
+
+    .form-help {
+        color: #666;
+        font-size: 12px;
+        margin-top: 4px;
+        line-height: 1.4;
+    }
+
+    .current-image {
+        text-align: center;
+    }
+
+    .product-preview {
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 12px;
+        border: 2px solid #f0f0f0;
+        margin-bottom: 12px;
+    }
+
+    .image-info {
+        color: #666;
+        font-size: 13px;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        padding-top: 24px;
+        margin-top: 24px;
+        border-top: 1px solid #f0f0f0;
+    }
+
+    .info-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .info-card {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .info-card.warning {
+        background: #fff3cd;
+        border-color: #ffeaa7;
+    }
+
+    .info-card h4 {
+        margin: 0 0 12px 0;
+        color: #333;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .info-card ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+
+    .info-card li {
+        margin-bottom: 6px;
+        font-size: 14px;
+        color: #666;
+        line-height: 1.4;
+    }
+
+    .info-card p {
+        margin: 0;
+        font-size: 14px;
+        color: #666;
+        line-height: 1.5;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: #0056b3;
+        transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+    }
+
+    .btn-outline {
+        background: white;
+        color: #6c757d;
+        border: 2px solid #dee2e6;
+    }
+
+    .btn-outline:hover {
+        background: #f8f9fa;
+        border-color: #adb5bd;
+    }
+
+    @media (max-width: 768px) {
+        .form-container {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-row.two-columns {
+            flex-direction: column;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}

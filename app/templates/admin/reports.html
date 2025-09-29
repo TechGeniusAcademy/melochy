@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Отчеты{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1><i class="fas fa-chart-bar"></i> Отчеты</h1>
+</div>
+
+<div class="reports-container">
+    <div class="reports-grid">
+        <div class="report-card">
+            <div class="report-header">
+                <h3><i class="fas fa-box"></i> Отчет по товарам</h3>
+                <p>Полный список товаров с информацией о ценах, количестве и категориях</p>
+            </div>
+            <div class="report-actions">
+                <a href="{{ url_for('admin.export_report', report_type='products') }}" class="btn btn-success">
+                    <i class="fas fa-file-excel"></i> Скачать Excel
+                </a>
+            </div>
+        </div>
+
+        <div class="report-card">
+            <div class="report-header">
+                <h3><i class="fas fa-store"></i> Отчет по магазинам</h3>
+                <p>Информация о магазинах, их Торговыйах и количестве товаров</p>
+            </div>
+            <div class="report-actions">
+                <a href="{{ url_for('admin.export_report', report_type='shops') }}" class="btn btn-success">
+                    <i class="fas fa-file-excel"></i> Скачать Excel
+                </a>
+            </div>
+        </div>
+
+        <div class="report-card">
+            <div class="report-header">
+                <h3><i class="fas fa-truck"></i> Отчет по Торговыйам</h3>
+                <p>Список Торговыйов с информацией об их магазинах и активности</p>
+            </div>
+            <div class="report-actions">
+                <button class="btn btn-success" onclick="alert('Отчет по Торговыйам будет добавлен позже')">
+                    <i class="fas fa-file-excel"></i> Скачать Excel
+                </button>
+            </div>
+        </div>
+
+        <div class="report-card">
+            <div class="report-header">
+                <h3><i class="fas fa-clipboard-list"></i> Отчет по заявкам</h3>
+                <p>Статистика по заявкам от магазинов: статусы, даты, Торговыйи</p>
+            </div>
+            <div class="report-actions">
+                <button class="btn btn-success" onclick="alert('Отчет по заявкам будет добавлен позже')">
+                    <i class="fas fa-file-excel"></i> Скачать Excel
+                </button>
+            </div>
+        </div>
+
+        <div class="report-card">
+            <div class="report-header">
+                <h3><i class="fas fa-users"></i> Отчет по пользователям</h3>
+                <p>Информация о пользователях системы и их активности</p>
+            </div>
+            <div class="report-actions">
+                <button class="btn btn-success" onclick="alert('Отчет по пользователям будет добавлен позже')">
+                    <i class="fas fa-file-excel"></i> Скачать Excel
+                </button>
+            </div>
+        </div>
+
+        <div class="report-card">
+            <div class="report-header">
+                <h3><i class="fas fa-tags"></i> Отчет по категориям</h3>
+                <p>Статистика по категориям товаров и их популярности</p>
+            </div>
+            <div class="report-actions">
+                <button class="btn btn-success" onclick="alert('Отчет по категориям будет добавлен позже')">
+                    <i class="fas fa-file-excel"></i> Скачать Excel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .reports-container {
+        padding: 20px 0;
+    }
+
+    .reports-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 25px;
+    }
+
+    .report-card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .report-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .report-header h3 {
+        color: #333;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 18px;
+    }
+
+    .report-header p {
+        color: #666;
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 20px;
+    }
+
+    .report-actions {
+        padding-top: 15px;
+        border-top: 1px solid #e1e1e1;
+    }
+
+    @media (max-width: 768px) {
+        .reports-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .report-card {
+            padding: 20px;
+        }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,974 @@
+{% extends "base.html" %}
+
+{% block title %}Заявка #{{ request.id }}{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1><i class="fas fa-clipboard-list"></i> Заявка #{{ request.id }}</h1>
+    <a href="{{ url_for('admin.requests') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Назад к заявкам
+    </a>
+</div>
+
+<!-- Контент для печати -->
+<div class="printable-content">
+    <div class="content-header">
+        <h1>Заявка #{{ request.id }} - {{ request.shop_name }}</h1>
+    </div>
+
+    <div class="request-detail">
+        <!-- Основная информация о заявке -->
+        <div class="request-info-card">
+            <h3><i class="fas fa-info-circle"></i> Основная информация</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label><i class="fas fa-hashtag"></i> ID заявки:</label>
+                    <span class="highlight-value">#{{ request.id }}</span>
+                </div>
+                <div class="info-item">
+                    <label><i class="fas fa-store"></i> Магазин:</label>
+                    <span class="highlight-value">{{ request.shop_name }}</span>
+                </div>
+                <div class="info-item">
+                    <label><i class="fas fa-truck"></i> Торговый:</label>
+                    <span class="highlight-value">{{ request.supplier_name }}</span>
+                </div>
+                <div class="info-item">
+                    <label><i class="fas fa-flag"></i> Статус:</label>
+                    <span class="status-badge status-{{ request.status }}">
+                        {% if request.status == 'pending' %}
+                        <i class="fas fa-clock"></i> Ожидает обработки
+                        {% elif request.status == 'processing' %}
+                        <i class="fas fa-cogs"></i> В обработке
+                        {% else %}
+                        <i class="fas fa-check-circle"></i> Завершена
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <label><i class="fas fa-calendar-plus"></i> Дата создания:</label>
+                    <span>{{ request.created_at if request.created_at else 'Не указано' }}</span>
+                </div>
+                {% if request.updated_at != request.created_at %}
+                <div class="info-item">
+                    <label><i class="fas fa-calendar-check"></i> Последнее обновление:</label>
+                    <span>{{ request.updated_at if request.updated_at else 'Не указано' }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Статистика по заявке -->
+        {% if stats %}
+        <div class="request-stats-card">
+            <h3><i class="fas fa-chart-bar"></i> Статистика заявки</h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ stats.items_count }}</div>
+                        <div class="stat-label">Видов товаров</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-sort-numeric-up"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ stats.total_quantity }}</div>
+                        <div class="stat-label">Общее количество</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ "%.0f"|format(stats.total_retail_cost) }} ₸</div>
+                        <div class="stat-label">Розничная стоимость</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-calculator"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ "%.0f"|format(stats.total_wholesale_cost) }} ₸</div>
+                        <div class="stat-label">Оптовая стоимость</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %} <!-- Временная информация -->
+        {% if request.created_at and request.updated_at %}
+        <div class="request-timeline-card">
+            <h3><i class="fas fa-history"></i> Временная шкала</h3>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-marker created">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <h4>Заявка создана</h4>
+                        <p>{{ request.created_at }}</p>
+                        <small>Торговый: {{ request.supplier_name }}</small>
+                    </div>
+                </div>
+
+                {% if request.updated_at != request.created_at %}
+                <div class="timeline-item">
+                    <div class="timeline-marker updated">
+                        <i class="fas fa-edit"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <h4>Заявка обновлена</h4>
+                        <p>{{ request.updated_at }}</p>
+                        <small>Последние изменения в статусе или содержании</small>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if request.status == 'completed' %}
+                <div class="timeline-item">
+                    <div class="timeline-marker completed">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <h4>Заявка завершена</h4>
+                        <p>{{ request.updated_at }}</p>
+                        <small>Заявка успешно обработана</small>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if items %}
+        <div class="request-items-card">
+            <h3><i class="fas fa-shopping-cart"></i> Детализация товаров</h3>
+            <div class="data-table-container">
+                <table class="data-table enhanced">
+                    <thead>
+                        <tr>
+                            <th class="product-col">
+                                <i class="fas fa-box"></i> Товар
+                            </th>
+                            <th class="category-col">
+                                <i class="fas fa-tags"></i> Категория
+                            </th>
+                            <th class="price-col">
+                                <i class="fas fa-money-bill"></i> Цена за ед.
+                            </th>
+                            <th class="quantity-col">
+                                <i class="fas fa-sort-numeric-up"></i> Количество
+                            </th>
+                            <th class="total-col">
+                                <i class="fas fa-calculator"></i> Сумма
+                            </th>
+                            <th class="percent-col">
+                                <i class="fas fa-percent"></i> % от общей суммы
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        {% set item_total = item.price * item.quantity %}
+                        {% set percentage = (item_total / stats.total_cost * 100) if stats.total_cost > 0 else 0 %}
+                        <tr class="item-row">
+                            <td class="product-info">
+                                <div class="product-main">
+                                    <strong>{{ item.product_name }}</strong>
+                                </div>
+                                {% if item.product_description %}
+                                <div class="product-desc">
+                                    {{ item.product_description[:50] }}{% if item.product_description|length > 50
+                                    %}...{%
+                                    endif %}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="category-info">
+                                {% if item.category_name %}
+                                <span class="category-badge">
+                                    <i class="fas fa-tag"></i> {{ item.category_name }}
+                                </span>
+                                {% else %}
+                                <span class="no-category">Без категории</span>
+                                {% endif %}
+                            </td>
+                            <td class="price-info">
+                                <div class="price-main">{{ "%.0f"|format(item.price) }} ₸</div>
+                                {% if item.wholesale_price and item.wholesale_price != item.price %}
+                                <div class="price-wholesale">
+                                    <small>Опт: {{ "%.0f"|format(item.wholesale_price) }} ₸</small>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="quantity-info">
+                                <div class="quantity-badge">
+                                    <i class="fas fa-boxes"></i> {{ item.quantity }} шт.
+                                </div>
+                            </td>
+                            <td class="total-info">
+                                <div class="total-amount">{{ "%.0f"|format(item_total) }} ₸</div>
+                            </td>
+                            <td class="percent-info">
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width: {{ " %.1f"|format(percentage) }}%;"></div>
+                                    <span class="progress-text">{{ "%.1f"|format(percentage) }}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="summary-row">
+                            <td colspan="3">
+                                <strong>
+                                    <i class="fas fa-calculator"></i> Итого по заявке:
+                                </strong>
+                            </td>
+                            <td class="total-quantity">
+                                <strong>{{ stats.total_quantity }} шт.</strong>
+                            </td>
+                            <td class="total-amount">
+                                <strong>{{ "%.0f"|format(stats.total_cost) }} ₸</strong>
+                            </td>
+                            <td class="total-percent">
+                                <strong>100%</strong>
+                            </td>
+                        </tr>
+
+                        <!-- Дополнительная информация -->
+                        <tr class="info-row">
+                            <td colspan="6">
+                                <div class="additional-info">
+                                    <div class="info-block">
+                                        <i class="fas fa-info-circle"></i>
+                                        <strong>Средняя цена за товар:</strong> {{ "%.0f"|format(stats.avg_price_per_item) }} ₸
+                                    </div>
+                                    <div class="info-block">
+                                        <i class="fas fa-weight"></i>
+                                        <strong>Средняя стоимость за единицу:</strong> {{ "%.0f"|format(stats.avg_price_per_unit) }} ₸
+                                    </div>
+                                    <div class="info-block">
+                                        <i class="fas fa-chart-line"></i>
+                                        <strong>Позиций в заявке:</strong> {{ stats.items_count }} видов товаров
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <!-- Блок для пустой заявки -->
+        <div class="request-items-card">
+            <h3><i class="fas fa-shopping-cart"></i> Детализация товаров</h3>
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <h4>В заявке нет товаров</h4>
+                <p>Эта заявка была создана, но не содержит товаров</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    <!-- /.printable-content -->
+
+    <div class="request-actions-card">
+        <h3>Действия</h3>
+        <div class="action-buttons">
+            {% if request.status == 'pending' %}
+            <form method="POST" action="{{ url_for('admin.mark_request_processed', request_id=request.id) }}"
+                style="display: inline;">
+                <button type="submit" class="btn btn-success"
+                    onclick="return confirm('Отметить заявку как обработанную?')">
+                    <i class="fas fa-check"></i> Отметить как обработанную
+                </button>
+            </form>
+            {% elif request.status == 'completed' %}
+            <form method="POST" action="{{ url_for('admin.reopen_request', request_id=request.id) }}"
+                style="display: inline;">
+                <button type="submit" class="btn btn-warning"
+                    onclick="return confirm('Вернуть заявку в обработку для редактирования?')">
+                    <i class="fas fa-edit"></i> Редактировать заявку
+                </button>
+            </form>
+            {% endif %}
+            
+            <button class="btn btn-info" onclick="printRequest()">
+                <i class="fas fa-print"></i> Печать
+            </button>
+            <a href="{{ url_for('admin.export_request', request_id=request.id) }}" class="btn btn-secondary">
+                <i class="fas fa-file-excel"></i> Экспорт в Excel
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .request-detail {
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+    }
+
+    .request-info-card,
+    .request-items-card,
+    .request-actions-card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .request-info-card h3,
+    .request-items-card h3,
+    .request-actions-card h3 {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .info-item label {
+        font-weight: 600;
+        color: #666;
+        font-size: 14px;
+    }
+
+    .info-item span {
+        color: #333;
+        font-size: 16px;
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        display: inline-block;
+        max-width: fit-content;
+    }
+
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
+    .status-processing {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+
+    .status-completed {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .total-row {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+
+    .total-row td {
+        border-top: 2px solid #dee2e6;
+    }
+
+    /* Новые стили для расширенной информации */
+
+    .request-stats-card,
+    .request-timeline-card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .request-stats-card h3,
+    .request-timeline-card h3 {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .highlight-value {
+        color: #667eea;
+        font-weight: 600;
+    }
+
+    /* Карточки статистики */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #000000 0%, #000000 100%);
+        border-radius: 12px;
+        padding: 20px;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .stat-icon {
+        font-size: 24px;
+        opacity: 0.8;
+    }
+
+    .stat-content {
+        flex: 1;
+    }
+
+    .stat-number {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        font-size: 14px;
+        opacity: 0.9;
+    }
+
+    /* Временная шкала */
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #e9ecef;
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 30px;
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: -22px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        color: white;
+        z-index: 2;
+    }
+
+    .timeline-marker.created {
+        background: #28a745;
+    }
+
+    .timeline-marker.updated {
+        background: #ffc107;
+    }
+
+    .timeline-marker.completed {
+        background: #17a2b8;
+    }
+
+    .timeline-content h4 {
+        margin: 0 0 5px 0;
+        color: #333;
+        font-size: 16px;
+    }
+
+    .timeline-content p {
+        margin: 0 0 5px 0;
+        color: #666;
+        font-size: 14px;
+    }
+
+    .timeline-content small {
+        color: #999;
+        font-size: 12px;
+    }
+
+    /* Расширенная таблица */
+    .data-table.enhanced {
+        font-size: 14px;
+    }
+
+    .data-table.enhanced th {
+        background: linear-gradient(135deg, #000000 0%, #000000 100%);
+        color: white;
+        font-weight: 600;
+        text-align: left;
+        padding: 15px 12px;
+    }
+
+    .data-table.enhanced th i {
+        margin-right: 5px;
+        opacity: 0.8;
+    }
+
+    .item-row:hover {
+        background-color: #f8f9fa;
+    }
+
+    .product-info {
+        max-width: 200px;
+    }
+
+    .product-main {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .product-desc {
+        color: #666;
+        font-size: 12px;
+        line-height: 1.3;
+    }
+
+    .category-badge {
+        background: #e9ecef;
+        color: #495057;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .no-category {
+        color: #999;
+        font-style: italic;
+        font-size: 12px;
+    }
+
+    .price-main {
+        font-weight: 600;
+        color: #28a745;
+        font-size: 16px;
+    }
+
+    .price-wholesale {
+        color: #666;
+        font-size: 12px;
+        margin-top: 2px;
+    }
+
+    .quantity-badge {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 6px 10px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: 500;
+    }
+
+    .total-amount {
+        font-weight: 600;
+        color: #333;
+        font-size: 16px;
+    }
+
+    .progress-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .progress-bar {
+        height: 8px;
+        background: linear-gradient(90deg, #bac1e4 0%, #764ba2 100%);
+        border-radius: 4px;
+        min-width: 2px;
+        transition: width 0.3s ease;
+    }
+
+    .progress-text {
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+        min-width: 35px;
+    }
+
+    .summary-row {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        font-weight: 600;
+        border-top: 2px solid #dee2e6;
+    }
+
+    .summary-row td {
+        padding: 15px 12px;
+        border-top: 2px solid #dee2e6;
+    }
+
+    .info-row {
+        background: #f8f9fa;
+    }
+
+    .additional-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        padding: 15px 0;
+    }
+
+    .info-block {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #666;
+        font-size: 14px;
+    }
+
+    .info-block i {
+        color: #667eea;
+    }
+
+    @media (max-width: 768px) {
+
+        .request-info-card,
+        .request-items-card,
+        .request-actions-card,
+        .request-stats-card,
+        .request-timeline-card {
+            padding: 20px;
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .additional-info {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .data-table.enhanced {
+            font-size: 12px;
+        }
+
+        .data-table.enhanced th,
+        .data-table.enhanced td {
+            padding: 8px 6px;
+        }
+    }
+
+    /* Стили для печати */
+    @media print {
+
+        /* Скрываем все элементы интерфейса */
+        body * {
+            visibility: hidden;
+        }
+
+        /* Показываем только нужные для печати элементы */
+        .printable-content,
+        .printable-content * {
+            visibility: visible;
+        }
+
+        /* Скрываем навигацию и кнопки */
+        .navbar,
+        .content-header a,
+        .request-actions-card,
+        .btn,
+        button,
+        .nav-link,
+        .nav-menu,
+        .sidebar {
+            display: none !important;
+            visibility: hidden !important;
+        }
+
+        /* Позиционируем контент для печати */
+        .printable-content {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+
+        .content-header h1 {
+            margin-top: 0;
+            text-align: center;
+            color: black;
+            font-size: 20px;
+        }
+
+        .request-detail {
+            gap: 15px;
+        }
+
+        .request-info-card,
+        .request-stats-card,
+        .request-timeline-card,
+        .request-items-card {
+            box-shadow: none;
+            border: 1px solid #ddd;
+            break-inside: avoid;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            background: white !important;
+            color: black !important;
+            border: 1px solid #ddd;
+        }
+
+        .timeline-marker {
+            background: white !important;
+            border: 2px solid #666 !important;
+            color: black !important;
+        }
+
+        .data-table.enhanced th {
+            background: #f8f9fa !important;
+            color: black !important;
+            border: 1px solid #ddd;
+        }
+
+        .data-table.enhanced td {
+            border: 1px solid #ddd;
+        }
+
+        .progress-bar {
+            background: #ddd !important;
+        }
+
+        .category-badge {
+            border: 1px solid #ddd;
+        }
+
+        .status-badge {
+            border: 1px solid #666;
+            color: black !important;
+        }
+
+        /* Разбивка страниц */
+        .request-items-card {
+            page-break-inside: avoid;
+        }
+
+        .data-table {
+            page-break-inside: auto;
+        }
+
+        .data-table tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+    }
+</style>
+
+<script>
+    function printRequest() {
+        // Скрываем элементы управления перед печатью
+        const actionButtons = document.querySelectorAll('.btn, button');
+        actionButtons.forEach(btn => {
+            if (!btn.closest('.print-friendly')) {
+                btn.style.display = 'none';
+            }
+        });
+
+        // Открываем диалог печати
+        window.print();
+
+        // Восстанавливаем элементы после печати
+        setTimeout(() => {
+            actionButtons.forEach(btn => {
+                btn.style.display = '';
+            });
+        }, 100);
+    }
+
+    function exportRequest(event) {
+        const requestId = {{ request.id }};
+
+    // Показываем индикатор загрузки
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Экспорт...';
+    btn.disabled = true;
+
+    // Отправляем запрос на экспорт
+    fetch(`/admin/requests/${requestId}/export`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Ошибка при экспорте');
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            // Создаем ссылку для скачивания
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `Заявка_${requestId}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            // Показываем уведомление об успехе
+            showNotification('Заявка успешно экспортирована!', 'success');
+        })
+        .catch(error => {
+            console.error('Ошибка экспорта:', error);
+            showNotification('Ошибка при экспорте заявки', 'error');
+        })
+        .finally(() => {
+            // Восстанавливаем кнопку
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    }
+
+    function showNotification(message, type = 'info') {
+        // Создаем уведомление
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 10000;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        `;
+
+        // Устанавливаем цвет в зависимости от типа
+        switch (type) {
+            case 'success':
+                notification.style.background = '#28a745';
+                break;
+            case 'error':
+                notification.style.background = '#dc3545';
+                break;
+            default:
+                notification.style.background = '#17a2b8';
+        }
+
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        // Удаляем уведомление через 5 секунд
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 5000);
+    }
+
+    // Улучшенная функция печати с предпросмотром
+    function printRequestAdvanced() {
+        const printWindow = window.open('', '_blank');
+        const printContent = document.cloneNode(true);
+
+        // Удаляем ненужные элементы
+        const elementsToRemove = printContent.querySelectorAll('.btn, button, .navbar, .request-actions-card');
+        elementsToRemove.forEach(el => el.remove());
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Заявка #{{ request.id }}</title>
+                <meta charset="utf-8">
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .request-detail { max-width: 800px; margin: 0 auto; }
+                    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #f5f5f5; font-weight: bold; }
+                    .header { text-align: center; margin-bottom: 30px; }
+                    .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
+                    .info-item { padding: 10px; border: 1px solid #eee; }
+                    .info-item label { font-weight: bold; display: block; margin-bottom: 5px; }
+                </style>
+            </head>
+            <body>
+                ${printContent.querySelector('.request-detail').outerHTML}
+            </body>
+            </html>
+        `);
+
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Торговый: {{ supplier.name }}{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1><i class="fas fa-user-tie"></i> {{ supplier.name }}</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('admin.edit_supplier', supplier_id=supplier.id) }}" class="btn btn-primary">
+            <i class="fas fa-edit"></i> Редактировать
+        </a>
+        <a href="{{ url_for('admin.suppliers') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Назад
+        </a>
+    </div>
+</div>
+
+<div class="detail-container">
+    <!-- Основная информация -->
+    <div class="info-card">
+        <h3><i class="fas fa-info-circle"></i> Основная информация</h3>
+        
+        <div class="info-grid">
+            <div class="info-item">
+                <label>ID Торговыйа:</label>
+                <span>{{ supplier.id }}</span>
+            </div>
+            
+            <div class="info-item">
+                <label>Название компании:</label>
+                <span>{{ supplier.name }}</span>
+            </div>
+            
+            <div class="info-item">
+                <label>Email:</label>
+                <span>{{ supplier.email }}</span>
+            </div>
+            
+            <div class="info-item">
+                <label>Роль:</label>
+                <span class="badge badge-supplier">{{ supplier.role }}</span>
+            </div>
+            
+            <div class="info-item">
+                <label>Описание:</label>
+                <span>{{ supplier.info or 'Не указано' }}</span>
+            </div>
+            
+            <div class="info-item">
+                <label>Дата регистрации:</label>
+                <span>{{ supplier.user_created_at }}</span>
+            </div>
+            
+            <div class="info-item">
+                <label>Последнее обновление:</label>
+                <span>{{ supplier.updated_at or supplier.created_at }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="stats-card">
+        <h3><i class="fas fa-chart-bar"></i> Статистика</h3>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-value">{{ stats.shops_count }}</div>
+                <div class="stat-label">Магазинов</div>
+            </div>
+            
+            <div class="stat-item">
+                <div class="stat-value">{{ stats.pending_requests }}</div>
+                <div class="stat-label">Ожидающих заявок</div>
+            </div>
+            
+            <div class="stat-item">
+                <div class="stat-value">{{ stats.total_requests }}</div>
+                <div class="stat-label">Всего заявок</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Магазины Торговыйа -->
+    <div class="shops-card">
+        <h3><i class="fas fa-store"></i> Магазины ({{ shops|length }})</h3>
+        
+        {% if shops %}
+        <div class="shops-grid">
+            {% for shop in shops %}
+            <div class="shop-item">
+                <div class="shop-header">
+                    <h4>{{ shop.name }}</h4>
+                    <span class="shop-id">#{{ shop.id }}</span>
+                </div>
+                
+                {% if shop.info %}
+                <p class="shop-description">{{ shop.info }}</p>
+                {% endif %}
+                
+                <div class="shop-meta">
+                    <small>Создан: {{ shop.created_at }}</small>
+                </div>
+                
+                <div class="shop-actions">
+                    <a href="{{ url_for('admin.edit_shop', shop_id=shop.id) }}" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-edit"></i> Редактировать
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-store"></i>
+            <p>У Торговыйа пока нет магазинов</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .detail-container {
+        display: grid;
+        gap: 20px;
+    }
+
+    .info-card, .stats-card, .shops-card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .info-card h3, .stats-card h3, .shops-card h3 {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 15px;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .info-item label {
+        font-weight: 600;
+        color: #666;
+        font-size: 14px;
+    }
+
+    .info-item span {
+        color: #333;
+        font-size: 16px;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 20px;
+    }
+
+    .stat-item {
+        text-align: center;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        color: white;
+    }
+
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        font-size: 14px;
+        opacity: 0.9;
+    }
+
+    .shops-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .shop-item {
+        border: 1px solid #e1e1e1;
+        border-radius: 8px;
+        padding: 15px;
+        transition: all 0.3s ease;
+    }
+
+    .shop-item:hover {
+        border-color: #667eea;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    }
+
+    .shop-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .shop-header h4 {
+        margin: 0;
+        color: #333;
+        font-size: 16px;
+    }
+
+    .shop-id {
+        color: #666;
+        font-size: 12px;
+        background: #f8f9fa;
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+
+    .shop-description {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 10px;
+        line-height: 1.4;
+    }
+
+    .shop-meta {
+        margin-bottom: 15px;
+    }
+
+    .shop-meta small {
+        color: #999;
+        font-size: 12px;
+    }
+
+    .shop-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        }
+        
+        .shops-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .header-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}

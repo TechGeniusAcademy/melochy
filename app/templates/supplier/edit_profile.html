@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Редактировать профиль{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1><i class="fas fa-edit"></i> Редактировать профиль</h1>
+    <a href="{{ url_for('supplier.profile') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Назад
+    </a>
+</div>
+
+<div class="form-container">
+    <form method="POST" class="form" id="edit-profile-form">
+        <div class="form-group">
+            <label for="name">Название компании</label>
+            <input type="text" id="name" name="name" value="{{ supplier.name }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="info">Описание компании</label>
+            <textarea id="info" name="info" rows="4" placeholder="Расскажите о вашей компании...">{{ supplier.info or '' }}</textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="submit-btn">
+                <i class="fas fa-save"></i> Сохранить изменения
+            </button>
+            <a href="{{ url_for('supplier.profile') }}" class="btn btn-secondary">
+                Отмена
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('edit-profile-form');
+    const submitBtn = document.getElementById('submit-btn');
+    let isSubmitting = false;
+    
+    form.addEventListener('submit', function(e) {
+        if (isSubmitting) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Проверяем обязательные поля
+        const nameField = document.getElementById('name');
+        if (!nameField.value.trim()) {
+            e.preventDefault();
+            alert('Пожалуйста, введите название компании');
+            return false;
+        }
+        
+        isSubmitting = true;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
+    });
+});
+</script>
+{% endblock %}
